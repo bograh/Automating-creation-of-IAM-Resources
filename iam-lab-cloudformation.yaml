@@ -68,6 +68,35 @@ Resources:
               - ec2:DescribeAvailabilityZones
             Resource: "*"
 
+  EC2User2PermissionsBoundaryManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: EC2User2PermissionsBoundary
+      Description: Permissions boundary for ec2-user2 that excludes ec2:RunInstances
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - ec2:DescribeInstances
+              - ec2:DescribeImages
+              - ec2:DescribeKeyPairs
+              - ec2:DescribeSecurityGroups
+              - ec2:DescribeSubnets
+              - ec2:DescribeVpcs
+              - ec2:CreateTags
+              - ec2:CreateKeyPair
+              - ec2:CreateSecurityGroup
+              - ec2:AuthorizeSecurityGroupIngress
+              - ec2:DescribeAvailabilityZones
+            Resource: "*"
+          - Effect: Allow
+            Action:
+              - iam:ChangePassword
+              - iam:GetUser
+              - iam:GetAccountPasswordPolicy
+            Resource: "*"
+
   EC2User1:
     Type: AWS::IAM::User
     Properties:
@@ -84,23 +113,10 @@ Resources:
       UserName: ec2-user2
       Groups:
         - !Ref EC2Group
+      PermissionsBoundary: !Ref EC2User2PermissionsBoundaryManagedPolicy
       LoginProfile:
         Password: "{{resolve:secretsmanager:iam-user-temp-password:SecretString:password}}"
         PasswordResetRequired: true
-
-  EC2User2DenyRunInstances:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: EC2User2DenyRunInstances
-      Users:
-        - !Ref EC2User2
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Deny
-            Action:
-              - ec2:RunInstances
-            Resource: "*"
 
   S3User:
     Type: AWS::IAM::User

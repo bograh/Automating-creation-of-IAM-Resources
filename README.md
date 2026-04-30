@@ -41,7 +41,8 @@ The template in `iam-lab-cloudformation.yaml` creates:
 6. `AWS::IAM::User` (`ec2-user1`) with console login profile
 7. `AWS::IAM::User` (`ec2-user2`) with console login profile
 8. `AWS::IAM::User` (`s3-user`) with console login profile
-9. `AWS::IAM::Policy` (`EC2User2DenyRunInstances`) attached directly to `ec2-user2`
+9. `AWS::IAM::ManagedPolicy` (`EC2User2PermissionsBoundaryManagedPolicy`)
+10. `PermissionsBoundary` attached to `ec2-user2`
 
 ### Permission Design
 
@@ -51,7 +52,7 @@ The template in `iam-lab-cloudformation.yaml` creates:
    - `ec2:DescribeInstances`
    - `ec2:RunInstances`
 
-Both `ec2-user1` and `ec2-user2` are assigned to the EC2 group for baseline EC2 access. A user-specific explicit deny policy (`EC2User2DenyRunInstances`) is attached to `ec2-user2`, which overrides the group allow and prevents `ec2-user2` from launching instances.
+Both `ec2-user1` and `ec2-user2` are assigned to the EC2 group for baseline EC2 access. For `ec2-user2`, a managed policy permissions boundary is attached and intentionally excludes `ec2:RunInstances`, which caps effective permissions and prevents instance launch.
 
 ### Password and Console Access Design
 
@@ -62,17 +63,17 @@ Both `ec2-user1` and `ec2-user2` are assigned to the EC2 group for baseline EC2 
 
 ### Requirement Coverage Matrix
 
-| Lab Requirement                                                | Implementation Status                             |
-| -------------------------------------------------------------- | ------------------------------------------------- |
-| One-time password auto-generated and stored in Secrets Manager | Implemented (`UserTempPassword`)                  |
-| S3 group can list S3 buckets                                   | Implemented (`S3Policy`)                          |
-| EC2 group can list and create EC2 instances                    | Implemented (`EC2Policy`)                         |
-| Create users: `ec2-user1`, `ec2-user2`, `s3-user`              | Implemented                                       |
-| Assign `ec2-user1` and `ec2-user2` to EC2 group                | Implemented                                       |
-| Assign `s3-user` to S3 group                                   | Implemented                                       |
-| IAM users use temporary password                               | Implemented (Secrets Manager reference)           |
-| IAM users must change password at first login                  | Implemented (`PasswordResetRequired: true`)       |
-| `ec2-user2` cannot create EC2 instances                        | Implemented (explicit deny on `ec2:RunInstances`) |
+| Lab Requirement                                                | Implementation Status                                          |
+| -------------------------------------------------------------- | -------------------------------------------------------------- |
+| One-time password auto-generated and stored in Secrets Manager | Implemented (`UserTempPassword`)                               |
+| S3 group can list S3 buckets                                   | Implemented (`S3Policy`)                                       |
+| EC2 group can list and create EC2 instances                    | Implemented (`EC2Policy`)                                      |
+| Create users: `ec2-user1`, `ec2-user2`, `s3-user`              | Implemented                                                    |
+| Assign `ec2-user1` and `ec2-user2` to EC2 group                | Implemented                                                    |
+| Assign `s3-user` to S3 group                                   | Implemented                                                    |
+| IAM users use temporary password                               | Implemented (Secrets Manager reference)                        |
+| IAM users must change password at first login                  | Implemented (`PasswordResetRequired: true`)                    |
+| `ec2-user2` cannot create EC2 instances                        | Implemented (permissions boundary excludes `ec2:RunInstances`) |
 
 ## GitSync Deployment Procedure
 
@@ -130,7 +131,7 @@ Each screenshot should clearly show:
 
 ## Security Best Practices Applied
 
-1. Least privilege is applied with group-based permissions plus a targeted user-level explicit deny for exception control (`ec2-user2`).
+1. Least privilege is applied with group-based permissions plus a managed permissions boundary for targeted exception control (`ec2-user2`).
 2. Passwords are not hardcoded; they are generated and stored in Secrets Manager.
 3. First-login password reset is enforced for all IAM users.
 4. IAM named-resource deployment is explicitly acknowledged with `CAPABILITY_NAMED_IAM`.
